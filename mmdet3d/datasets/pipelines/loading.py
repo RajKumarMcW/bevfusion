@@ -133,7 +133,8 @@ class LoadPointsFromMultiSweeps:
         Returns:
             np.ndarray: An array containing point clouds data.
         """
-        mmcv.check_file_exist(lidar_path)
+        #mcw
+        # mmcv.check_file_exist(lidar_path)
         if self.load_augmented:
             assert self.load_augmented in ["pointpainting", "mvp"]
             virtual = self.load_augmented == "mvp"
@@ -143,7 +144,9 @@ class LoadPointsFromMultiSweeps:
         elif lidar_path.endswith(".npy"):
             points = np.load(lidar_path)
         else:
-            points = np.fromfile(lidar_path, dtype=np.float32)
+            #mcw
+            # points = np.fromfile(lidar_path, dtype=np.float32)
+            points = [1.1,2.1,3.2,4.2,5.2]
         return points
 
     def _remove_close(self, points, radius=1.0):
@@ -290,8 +293,9 @@ class LoadBEVSegmentation:
         for name in mappings:
             layer_names.extend(mappings[name])
         layer_names = list(set(layer_names))
-
-        location = data["location"]
+        # mcw
+        location = 'singapore-onenorth'
+        # location = data["location"]
         masks = self.maps[location].get_map_mask(
             patch_box=patch_box,
             patch_angle=patch_angle,

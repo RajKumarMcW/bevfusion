@@ -190,7 +190,94 @@ def main():
         model.CLASSES = checkpoint["meta"]["CLASSES"]
     else:
         model.CLASSES = dataset.CLASSES
+    
+    #mcw
+    for data in data_loader:
+        img = torch.tensor(data["img"].data[0],dtype=torch.float16).cuda() 
+        points = [torch.tensor(data["points"].data[0][0],dtype=torch.float16).cuda()]
+        camera2ego = data["camera2ego"].data[0].cuda()
+        camera2lidar = data["camera2lidar"].data[0].cuda()
+        lidar2ego = data["lidar2ego"].data[0].cuda()
+        lidar2camera = data["lidar2camera"].data[0].cuda()
+        lidar2image = data["lidar2image"].data[0].cuda()
+        camera_intrinsics = data["camera_intrinsics"].data[0].cuda()
+        img_aug_matrix = data["img_aug_matrix"].data[0].cuda()
+        lidar_aug_matrix = data["lidar_aug_matrix"].data[0].cuda()
+        metas = data["metas"].data[0]
+        gt_bboxes_3d=data["gt_bboxes_3d"].data[0]
+        gt_labels_3d=[data["gt_labels_3d"].data[0][0].cuda()]
+        depths=data['depths'].cuda()
+        gt_masks_bev=data['gt_masks_bev'].cuda()
+        model.eval().cuda()
+        # print("img",img,
+        #     "metas",metas,
+        #     "return_loss",False, "rescale",True,
+        #     "depths",depths,
+        #     "points",points, 
+        #     "camera2ego",camera2ego, 
+        #     "lidar2ego",lidar2ego, 
+        #     "lidar2camera",lidar2camera, 
+        #     "lidar2image",lidar2image, 
+        #     "camera_intrinsics",camera_intrinsics, 
+        #     "camera2lidar",camera2lidar, 
+        #     "img_aug_matrix",img_aug_matrix, 
+        #     "lidar_aug_matrix",lidar_aug_matrix,
+        #     "gt_bboxes_3d",gt_bboxes_3d,
+        #     "gt_masks_bev",gt_masks_bev,
+        #     "gt_labels_3d",gt_labels_3d)
+        # # exit()
+        # out=model(
+        #     img=img,
+        #     metas=metas,
+        #     return_loss=False, rescale=True,
+        #     depths=depths,
+        #     points=points, 
+        #     camera2ego=camera2ego, 
+        #     lidar2ego=lidar2ego, 
+        #     lidar2camera=lidar2camera, 
+        #     lidar2image=lidar2image, 
+        #     camera_intrinsics=camera_intrinsics, 
+        #     camera2lidar=camera2lidar, 
+        #     img_aug_matrix=img_aug_matrix, 
+        #     lidar_aug_matrix=lidar_aug_matrix,
+        #     gt_bboxes_3d=gt_bboxes_3d,
+        #     gt_masks_bev=gt_masks_bev,
+        #     gt_labels_3d=gt_labels_3d
+        # )
+        # exit()
+   
+        from functools import partial
 
+        model.forward = partial(
+            model.forward,
+            metas=metas,
+            return_loss=False, rescale=True,
+            depths=depths,
+            points=points, 
+            camera2ego=camera2ego, 
+            lidar2ego=lidar2ego, 
+            lidar2camera=lidar2camera, 
+            lidar2image=lidar2image, 
+            camera_intrinsics=camera_intrinsics, 
+            camera2lidar=camera2lidar, 
+            img_aug_matrix=img_aug_matrix, 
+            lidar_aug_matrix=lidar_aug_matrix,
+            gt_bboxes_3d=gt_bboxes_3d,
+            gt_masks_bev=gt_masks_bev,
+            gt_labels_3d=gt_labels_3d
+        )
+        
+        break
+    print("Export")
+    torch.onnx.export(
+                    model,                        
+                    img,               
+                    "bevfusion.onnx",   
+                    # export_params=True,        
+                    opset_version=14,
+        )
+    print("Successfully Exported...")
+    
     if not distributed:
         model = MMDataParallel(model, device_ids=[0])
         outputs = single_gpu_test(model, data_loader)
